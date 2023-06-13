@@ -1,0 +1,97 @@
+version: '3'
+services:
+  db:
+    container_name: postgres
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+  
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - 5050:80
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pgadmin.rule=Host(`pgadmin.localhost`)"
+
+  django:
+    container_name: backend
+    build: .
+    # command: python manage.py runserver 0.0.0.0:8000
+    command: gunicorn src.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    entrypoint: /code/entrypoint.sh
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`django.localhost`)"
+  
+  traefik:
+    image: traefik:v2.4
+    container_name: traefik
+    command:
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik.toml:/etc/traefik/traefik.toml
+  
+  
+  redis:
+    container_name: redis
+    image: redis
+    restart: always
+    ports:
+      - 6379:6379
+  
+  celery:
+    container_name: celery
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    command: celery -A src worker --loglevel=info
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+
+  flower:
+    image: mher/flower
+    container_name: flower
+    command: celery flower --persisten=True
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=8888
+    ports:
+    - 8888:8888 # docker will expose this ports
+    volumes:
+    - flower_data:/data
+
+
+volumes:
+  postgres_data:
+  flower_data:
