@@ -1,4 +1,4 @@
-# Django + Docker + Postgres + Traefik + PgAdmin
+# Django + Docker + Postgres + Traefik + PgAdmin + Celery + Flower
 
 Clone the repo & Run this command
 
