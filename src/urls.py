@@ -8,6 +8,7 @@ from .schema import schema_view
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("authentication.urls")),
+    path("", include("shopnest.urls")),
 
 
     # API Documentation endpoints
