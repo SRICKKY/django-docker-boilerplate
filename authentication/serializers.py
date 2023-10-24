@@ -7,4 +7,4 @@ from .models import UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ('bio', 'profile_picture',)  # Include other fields as needed
+        fields = '__all__'  # Include other fields as needed
